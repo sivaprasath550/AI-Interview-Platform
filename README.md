@@ -16,10 +16,9 @@ This is an actively developed learning/portfolio project. Current state, honestl
 | Submissions + sandboxed code execution | ✅ Done, tested end-to-end — `POST /submissions` enqueues a BullMQ job; the worker grades every test case in an isolated Docker container and the frontend polls the result |
 | AI layer (feedback, hints, problem generation, mock interviews) | ✅ Done, tested end-to-end — see below |
 
-## High‑level architecture
+## High-level architecture
 
-```
-      ```mermaid
+```mermaid
 flowchart TD
     Browser["Browser · Next.js :3001<br/>access token in memory · refresh cookie: httpOnly, SameSite=Strict"]
 
@@ -46,7 +45,6 @@ flowchart TD
     Submissions -->|"enqueue job"| Redis[("Redis · BullMQ queue")]
     Redis -->|"consumed by"| Worker["ExecutionProcessor · worker<br/>one container per test case"]
     Worker --> Docker["Docker Engine · python:3.11-slim<br/>--network none · mem / CPU / PID caps<br/>read-only rootfs · non-root · 5s timeout"]
-```
 ```
 
 
