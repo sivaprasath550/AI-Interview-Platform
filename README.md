@@ -16,7 +16,41 @@ This is an actively developed learning/portfolio project. Current state, honestl
 | Submissions + sandboxed code execution | ✅ Done, tested end-to-end — `POST /submissions` enqueues a BullMQ job; the worker grades every test case in an isolated Docker container and the frontend polls the result |
 | AI layer (feedback, hints, problem generation, mock interviews) | ✅ Done, tested end-to-end — see below |
 
-**Full architecture + rationale + interview Q&A:** [`docs/PROJECT-EXPLAINED.md`](docs/PROJECT-EXPLAINED.md).
+## 3. High‑level architecture
+
+```
+                        Browser  (Next.js :3001)
+                          │
+             REST + JSON  │  access token in Authorization header (memory only)
+             + httpOnly   │  refresh token in httpOnly, SameSite=Strict cookie
+             cookie       ▼
+                    NestJS API  (:3000)
+   ┌───────────────┬───────────────┬────────────────┬─────────────────┐
+   │ AuthModule    │ ProblemsModule│ SubmissionsMod.│ InterviewsModule│
+   │  users        │  problems     │  submissions   │  interviews     │
+   │  refresh_tok. │  test_cases   │  (BullMQ prod.) │  (LLM turns)    │
+   └──────┬────────┴───────┬───────┴───────┬────────┴────────┬────────┘
+          │                │               │                 │
+          ▼                ▼               ▼                 ▼
+     PostgreSQL        PostgreSQL      Redis (BullMQ)     Groq API
+                         + Groq API        │            (OpenAI-compat)
+                       (hints/gen)         ▼
+                                      ExecutionProcessor (worker)
+                                           │  one container per test case
+                                           ▼
+                                      Docker Engine
+                                     python:3.11-slim
+                                     --network none, mem/cpu/pid caps,
+                                     read-only rootfs, non-root, 5s timeout
+```
+
+Cross‑cutting, applied in `backend/src/main.ts`:
+
+- `cookie-parser` — so `POST /auth/refresh` can read the httpOnly cookie back.
+- `enableCors({ origin: 'http://localhost:3001', credentials: true })` — CORS is about *who may read the response*; `credentials: true` is required for the cookie to travel cross‑origin at all.
+- Global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` — this single line enforces every `class-validator` decorator in the app **and** is the mass‑assignment defence (a request can't smuggle in `role: "admin"` — unknown fields 400).
+
+---
 
 ### AI features (Groq / OpenAI-compatible)
 
