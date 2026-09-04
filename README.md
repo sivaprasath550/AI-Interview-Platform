@@ -47,6 +47,7 @@ flowchart TD
     Redis -->|"consumed by"| Worker["ExecutionProcessor · worker<br/>one container per test case"]
     Worker --> Docker["Docker Engine · python:3.11-slim<br/>--network none · mem / CPU / PID caps<br/>read-only rootfs · non-root · 5s timeout"]
 ```
+```
 
 
 Cross‑cutting, applied in `backend/src/main.ts`:
