@@ -47,8 +47,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const currentToken = req.cookies?.[REFRESH_COOKIE_NAME] as
-      | string
-      | undefined;
+      string | undefined;
     const { accessToken, refreshToken, user } =
       await this.authService.refresh(currentToken);
     // Rotation means we always set a NEW cookie here, overwriting the
@@ -59,13 +58,9 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const currentToken = req.cookies?.[REFRESH_COOKIE_NAME] as
-      | string
-      | undefined;
+      string | undefined;
     await this.authService.logout(currentToken);
     // clearCookie needs the same path the cookie was originally set
     // with (default '/') to actually match and remove it — mismatched

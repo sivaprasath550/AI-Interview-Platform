@@ -77,12 +77,32 @@ export async function apiFetch<T>(
   return res.json() as Promise<T>;
 }
 
+// Single-flight guard. Refresh tokens are single-use and ROTATING, and
+// the server treats a second presentation of an already-rotated token as
+// a stolen-token signal — it revokes every session for that user. So two
+// concurrent /auth/refresh calls with the same cookie don't just waste a
+// round trip, they log the user out everywhere. This happens more easily
+// than it sounds: React StrictMode double-invokes effects in dev, and
+// AuthInitializer's refresh can race a 401-triggered refresh from
+// apiFetch. Collapsing all overlapping callers onto one in-flight
+// promise is what makes rotation safe here.
+let refreshInFlight: Promise<boolean> | null = null;
+
 // Exported separately (not just used internally by apiFetch above) so an
 // AuthInitializer component can call this once on app load — access
-// tokens live only in memory (Step 7), so every page refresh starts
-// with an empty store; this is what silently recovers it from the
-// httpOnly refresh cookie, which DOES survive a refresh.
-export async function restoreSession(): Promise<boolean> {
+// tokens live only in memory, so every page refresh starts with an empty
+// store; this is what silently recovers it from the httpOnly refresh
+// cookie, which DOES survive a refresh.
+export function restoreSession(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function doRefresh(): Promise<boolean> {
   try {
     const res = await rawFetch('/auth/refresh', { method: 'POST' });
     if (!res.ok) return false;

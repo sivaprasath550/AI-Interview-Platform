@@ -12,9 +12,19 @@ This is an actively developed learning/portfolio project. Current state, honestl
 |---|---|
 | Authentication (signup, login, refresh rotation, logout) | ✅ Done, tested end-to-end |
 | Problems (browse, filter, detail view) | ✅ Done, tested end-to-end |
-| Frontend (auth pages, problems pages) | ✅ Done, tested |
-| Submissions + sandboxed code execution | 🚧 In progress — entities, queue, and sandbox worker are built; final wiring and end-to-end testing not yet complete |
-| System design / behavioral interview modules | 📋 Planned |
+| Frontend (auth pages, problems pages, in-browser editor) | ✅ Done, tested |
+| Submissions + sandboxed code execution | ✅ Done, tested end-to-end — `POST /submissions` enqueues a BullMQ job; the worker grades every test case in an isolated Docker container and the frontend polls the result |
+| AI layer (feedback, hints, problem generation, mock interviews) | ✅ Done, tested end-to-end — see below |
+
+**Full architecture + rationale + interview Q&A:** [`docs/PROJECT-EXPLAINED.md`](docs/PROJECT-EXPLAINED.md).
+
+### AI features (Groq / OpenAI-compatible)
+
+- **Submission feedback** — `POST /submissions/:id/feedback`: structured code review (correctness, complexity, style, suggestions). Cached on the submission row.
+- **Progressive hints** — `POST /problems/:slug/hint` `{ level: 1–3 }`: escalating nudges that never reveal a full solution.
+- **Problem generation** — `POST /problems/generate`: the model writes a problem + reference solution + tests; the reference solution is **run in the sandbox** against those tests, and the problem is saved only if it passes.
+- **Mock interviews** — `POST /interviews` (`coding` / `behavioral` / `system_design`): a live turn-by-turn interview; `POST /interviews/:id/end` produces a structured evaluation with 1–5 scores and a hire recommendation.
+- All AI routes are behind a Redis-backed per-user rate limiter; LLM JSON output is validated against a schema, not trusted.
 
 ## Tech Stack
 
@@ -23,6 +33,7 @@ This is an actively developed learning/portfolio project. Current state, honestl
 - **Infra (local dev):** Docker Compose (PostgreSQL + Redis)
 - **Queue:** BullMQ (Redis-backed)
 - **Code execution:** Docker Engine API (`dockerode`) — isolated, resource-capped containers per submission
+- **AI:** Groq (OpenAI-compatible chat completions) via a dependency-free `fetch` wrapper
 
 ## Architecture
 
@@ -88,10 +99,15 @@ docker compose up -d
 ```bash
 cd backend
 npm install
+npm run seed        # inserts a few starter problems (idempotent)
 npm run start:dev
 ```
 
 Runs on `http://localhost:3000`.
+
+> Grading needs the Docker daemon running — the execution worker pulls
+> `python:3.11-slim` on the first submission and runs each test case in
+> its own throwaway container.
 
 ### 4. Run the frontend
 

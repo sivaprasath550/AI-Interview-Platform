@@ -1,26 +1,194 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ *
+ * Design tokens. Every colour is a semantic role, not a raw hue, so
+ * the whole UI re-themes by flipping these two blocks.
+ * ------------------------------------------------------------------ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --bg: #fbfbfd;
+  --surface: #ffffff;
+  --surface-2: #f3f3f7;
+  --border: #e7e7ee;
+  --border-strong: #d6d6df;
+  --text: #14141b;
+  --muted: #5a5a6b;
+  --faint: #8c8c9c;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-fg: #ffffff;
+  --accent-subtle: #eef2ff;
+
+  --easy: #047857;
+  --easy-bg: #e6f6ef;
+  --medium: #b45309;
+  --medium-bg: #fbf1e0;
+  --hard: #be123c;
+  --hard-bg: #fdeaef;
+
+  --success: #059669;
+  --success-bg: #e6f6ef;
+  --danger: #e11d48;
+  --danger-bg: #fdeaef;
+  --warning: #d97706;
+  --warning-bg: #fbf1e0;
+
+  --shadow-sm: 0 1px 2px rgba(20, 20, 40, 0.06);
+  --shadow-md: 0 6px 24px -8px rgba(20, 20, 40, 0.14);
+  --shadow-lg: 0 24px 60px -18px rgba(20, 20, 40, 0.22);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0a0a0e;
+    --surface: #121218;
+    --surface-2: #1b1b23;
+    --border: #262630;
+    --border-strong: #363642;
+    --text: #ededf2;
+    --muted: #a2a2b0;
+    --faint: #6d6d7c;
+
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --accent-fg: #ffffff;
+    --accent-subtle: #1c1b3a;
+
+    --easy: #34d399;
+    --easy-bg: rgba(16, 185, 129, 0.13);
+    --medium: #fbbf24;
+    --medium-bg: rgba(245, 158, 11, 0.13);
+    --hard: #fb7185;
+    --hard-bg: rgba(244, 63, 94, 0.13);
+
+    --success: #34d399;
+    --success-bg: rgba(16, 185, 129, 0.13);
+    --danger: #fb7185;
+    --danger-bg: rgba(244, 63, 94, 0.13);
+    --warning: #fbbf24;
+    --warning-bg: rgba(245, 158, 11, 0.13);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 24px -8px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 24px 60px -18px rgba(0, 0, 0, 0.7);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Expose the tokens to Tailwind as `bg-*`, `text-*`, `border-*` utilities. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+
+  --color-easy: var(--easy);
+  --color-easy-bg: var(--easy-bg);
+  --color-medium: var(--medium);
+  --color-medium-bg: var(--medium-bg);
+  --color-hard: var(--hard);
+  --color-hard-bg: var(--hard-bg);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo,
+    Consolas, monospace;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 26%, transparent);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * A couple of decorative helpers used on marketing surfaces.
+ * ------------------------------------------------------------------ */
+.bg-grid {
+  background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--border) 70%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--border) 70%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 46px 46px;
+}
+
+.mask-fade {
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    #000 40%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    #000 40%,
+    transparent 100%
+  );
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
 }

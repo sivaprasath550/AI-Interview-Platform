@@ -65,6 +65,15 @@ export class Submission {
   @Column({ name: 'runtime_ms', type: 'int', nullable: true })
   runtimeMs: number | null;
 
+  // Cached AI code-review, generated on demand by POST
+  // /submissions/:id/feedback. jsonb (not text) so Postgres validates
+  // it's well-formed JSON on write and we can query into it later if we
+  // ever want to. NULL = "not requested yet"; the LLM call is only made
+  // once per submission and reused afterwards, since it costs tokens and
+  // the code never changes after grading.
+  @Column({ name: 'ai_feedback', type: 'jsonb', nullable: true })
+  aiFeedback: Record<string, unknown> | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

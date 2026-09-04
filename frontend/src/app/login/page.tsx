@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { login } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/client';
 import { useAuthStore } from '@/store/auth-store';
+import { Alert, Button, Logo, Spinner } from '@/components/ui';
+import { TextField } from '@/components/text-field';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,14 +24,13 @@ export default function LoginPage() {
     try {
       const { accessToken, user } = await login({ email, password });
       setAuth(accessToken, user);
-      router.push('/');
+      router.push('/problems');
     } catch (err) {
       // Deliberately generic on the frontend too, mirroring the backend's
-      // single "Invalid email or password" message (Step 4) — we don't
-      // want the UI to leak anything more specific than the API already
-      // refuses to.
+      // single "Invalid email or password" message — we don't want the UI
+      // to leak anything more specific than the API already refuses to.
       if (err instanceof ApiError && err.status === 401) {
-        setError('Invalid email or password');
+        setError('Invalid email or password.');
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -38,61 +40,56 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
-      >
-        <h1 className="text-2xl font-semibold text-gray-900">Log in</h1>
+    <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-sm flex-col justify-center px-5 py-12">
+      <div className="animate-rise">
+        <Link href="/" className="mx-auto block w-fit">
+          <Logo />
+        </Link>
+        <h1 className="mt-8 text-center text-2xl font-semibold tracking-tight text-text">
+          Welcome back
+        </h1>
+        <p className="mt-2 text-center text-sm text-muted">
+          Log in to keep practicing and track your submissions.
+        </p>
 
-        {error && (
-          <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        )}
+        <form
+          onSubmit={handleSubmit}
+          className="mt-8 space-y-4 rounded-xl border border-border bg-surface p-6 shadow-sm"
+        >
+          {error && <Alert>{error}</Alert>}
 
-        <div className="space-y-1">
-          <label
-            htmlFor="email"
-            className="text-sm font-medium text-gray-700"
-          >
-            Email
-          </label>
-          <input
+          <TextField
             id="email"
+            label="Email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           />
-        </div>
-
-        <div className="space-y-1">
-          <label
-            htmlFor="password"
-            className="text-sm font-medium text-gray-700"
-          >
-            Password
-          </label>
-          <input
+          <TextField
             id="password"
+            label="Password"
             type="password"
             required
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           />
-        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded bg-gray-900 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {loading ? 'Logging in...' : 'Log in'}
-        </button>
-      </form>
-    </main>
+          <Button type="submit" disabled={loading} className="mt-2 w-full">
+            {loading && <Spinner className="h-4 w-4" />}
+            {loading ? 'Logging in…' : 'Log in'}
+          </Button>
+        </form>
+
+        <p className="mt-5 text-center text-sm text-muted">
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="font-medium text-accent hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }

@@ -56,4 +56,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+// `void` — bootstrap() is the app's top-level entrypoint; there is no
+// caller to await it, so we explicitly mark the promise as intentionally
+// unawaited rather than leaving it as a floating-promise lint warning.
+void bootstrap();
