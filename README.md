@@ -16,33 +16,38 @@ This is an actively developed learning/portfolio project. Current state, honestl
 | Submissions + sandboxed code execution | ✅ Done, tested end-to-end — `POST /submissions` enqueues a BullMQ job; the worker grades every test case in an isolated Docker container and the frontend polls the result |
 | AI layer (feedback, hints, problem generation, mock interviews) | ✅ Done, tested end-to-end — see below |
 
-## 3. High‑level architecture
+## High‑level architecture
 
 ```
-                        Browser  (Next.js :3001)
-                          │
-             REST + JSON  │  access token in Authorization header (memory only)
-             + httpOnly   │  refresh token in httpOnly, SameSite=Strict cookie
-             cookie       ▼
-                    NestJS API  (:3000)
-   ┌───────────────┬───────────────┬────────────────┬─────────────────┐
-   │ AuthModule    │ ProblemsModule│ SubmissionsMod.│ InterviewsModule│
-   │  users        │  problems     │  submissions   │  interviews     │
-   │  refresh_tok. │  test_cases   │  (BullMQ prod.) │  (LLM turns)    │
-   └──────┬────────┴───────┬───────┴───────┬────────┴────────┬────────┘
-          │                │               │                 │
-          ▼                ▼               ▼                 ▼
-     PostgreSQL        PostgreSQL      Redis (BullMQ)     Groq API
-                         + Groq API        │            (OpenAI-compat)
-                       (hints/gen)         ▼
-                                      ExecutionProcessor (worker)
-                                           │  one container per test case
-                                           ▼
-                                      Docker Engine
-                                     python:3.11-slim
-                                     --network none, mem/cpu/pid caps,
-                                     read-only rootfs, non-root, 5s timeout
+      ```mermaid
+flowchart TD
+    Browser["Browser · Next.js :3001<br/>access token in memory · refresh cookie: httpOnly, SameSite=Strict"]
+
+    Browser -->|"REST + JSON · Bearer access token"| API
+    API -.->|"202 Accepted, then poll GET /submissions/:id"| Browser
+
+    subgraph API["NestJS API · :3000"]
+        direction LR
+        Auth["AuthModule<br/>users · refresh_tokens"]
+        Problems["ProblemsModule<br/>problems · test_cases"]
+        Submissions["SubmissionsModule<br/>BullMQ producer"]
+        Interviews["InterviewsModule<br/>interview transcripts"]
+    end
+
+    Auth --> PG[("PostgreSQL")]
+    Problems --> PG
+    Submissions -->|"write submission row"| PG
+    Interviews --> PG
+
+    Problems -->|"hints · generation"| Groq["Groq API<br/>OpenAI-compatible"]
+    Submissions -->|"AI code review"| Groq
+    Interviews -->|"chat turns · evaluation"| Groq
+
+    Submissions -->|"enqueue job"| Redis[("Redis · BullMQ queue")]
+    Redis -->|"consumed by"| Worker["ExecutionProcessor · worker<br/>one container per test case"]
+    Worker --> Docker["Docker Engine · python:3.11-slim<br/>--network none · mem / CPU / PID caps<br/>read-only rootfs · non-root · 5s timeout"]
 ```
+
 
 Cross‑cutting, applied in `backend/src/main.ts`:
 
